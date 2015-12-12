@@ -14,15 +14,24 @@ var M = Math,
 	player,
 	keysDown = [],
 	playerColor,
-	beamLength = 200,
+	beamLength = 20,
 	beamAmount = 0,
-	piRatio = M.PI / 180;
+	piRatio = M.PI / 180,
+	baseVelocity = 0.2,
+	buttonPressed = false,
+	buttonReleased = false;
 
+
+
+function moveBeams(sendedBeams){
+
+	for(var i = 0; i < sendedBeams; ++i){
+		entities[i].x += entities[i].vx;
+		entities[i].y += entities[i].vy; 
+	}
+}
 
 function drawBeams(){
-	var targetX = 0,
-		targetY = 0;
-
 
 	var growAngle = 0;
 	if(beamAmount != 0)
@@ -31,35 +40,57 @@ function drawBeams(){
 	var shootAngle = 0;
 
 	for(var i = 0 ; i < beamAmount; ++i){
+		var xFactor,
+			yFactor;
+
+		if((shootAngle >= 0 && shootAngle <= 90) ||
+			(shootAngle >= 270 && shootAngle <= 360))
+			xFactor = 1;	
+		else
+			xFactor = -1;
+
+		if(shootAngle >= 0 && shootAngle <= 180)
+			yFactor = 1;
+		else
+			yFactor = -1;
+
 		var sinusValue = M.sin(shootAngle * piRatio);
 
 		if (shootAngle == 0 || shootAngle == 360){
-			targetY = entities[i].y;
-			targetX = entities[i].x + beamLength;
+			entities[i].targetX = entities[i].x + beamLength;
+			entities[i].targetY = entities[i].y;
+			entities[i].vx = baseVelocity;
+
 		}
 		else if (shootAngle == 180){
-			targetY = entities[i].y;
-			targetX = entities[i].x - beamLength;	
-		}	
+			entities[i].targetX = entities[i].x - beamLength;
+			entities[i].targetY = entities[i].y;
+			entities[i].vx = -baseVelocity;
+		}
+		else{
+			entities[i].targetX = M.cos(shootAngle * piRatio) * beamLength + entities[i].x; 
+			entities[i].targetY = sinusValue * beamLength + entities[i].y;
+			entities[i].vx = (M.cos(shootAngle * piRatio) * beamLength) / 30 ;
+			entities[i].vy = (sinusValue * beamLength) / 30 ; 
+
+		}
 
 		shootAngle += growAngle;
 
 		context.beginPath();
 		context.lineWidth = 2;
     	context.strokeStyle = 'white';
-		context.moveTo(entities[0].x,entities[0].y);
-		context.lineTo(targetX,targetY);
+		context.moveTo(entities[i].x,entities[i].y);
+		context.lineTo(entities[i].targetX,entities[i].targetY);
 		context.stroke();
+
+		moveBeams(beamAmount);
 	}
-
-
-	
-	
 
 }
 
 function calculateBeamAmount(){
-	var beamGrowRate = M.floor(player.r / (player.life * 5)) ;
+	var beamGrowRate = 1/5;
 
 	if(beamAmount + beamGrowRate > 36)
 		beamAmount = 36;
@@ -101,16 +132,20 @@ function input(){
 
 function setKey( event, down )
 {
-	keysDown[event.keyCode] = down
-	event.preventDefault()
+	keysDown[event.keyCode] = down;
+	event.preventDefault();
 }
 function keyUp( event )
 {
-	setKey( event, false )
+	setKey( event, false );
+	buttonReleased = true;
+	buttonPressed = false;
 }
 function keyDown( event )
 {
-	setKey( event, true )
+	setKey( event, true );
+	buttonPressed = true;
+	buttonReleased = false;
 }
 
 function drawPlayer(){
@@ -124,7 +159,7 @@ function drawPlayer(){
 function draw(){
 	context.fillStyle = "#000";
 	context.fillRect( 0, 0, width, height );
-	if(beamAmount == 36)
+	if(buttonReleased)
 		drawBeams();
 	drawPlayer();
 }
@@ -144,19 +179,20 @@ function setup(){
 		entities.push({
 			x: width >> 1,
 			y: height >> 1,
-			targetX = 0,
-			targetY = 0,
+			targetX: 0,
+			targetY: 0,
 			vx: 0,
 			vy: 0,
-			length: 7
+			length: 7,
+			lifetime: 0,
 		});
 	}
 
 	entities.push(player={
 		x: width >> 1,
 		y: height >> 1,
-		r: 100,
-		life:100
+		r: 10,
+		life:10
 	});
 
 
