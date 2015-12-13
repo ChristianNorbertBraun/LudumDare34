@@ -12,6 +12,7 @@ var M = Math,
 	last,
 	beams = [],
 	loadingBeams = [],
+	enemies = [],
 	points = [],
 	player,
 	keysDown = [],
@@ -64,7 +65,7 @@ function detectCollision(){
 		for(var j = 0; j < points.length; ++j){
 			var collisionPoint = m * points[j].x + t;
 
-			if(M.abs(points[j].y - collisionPoint) <= 30){
+			if(M.abs(points[j].y - collisionPoint) <= 10){
 					
 					if((livingBeams[i].targetX > points[j].x &&
 						livingBeams[i].x < points[j].x) ||
@@ -81,9 +82,99 @@ function detectCollision(){
 	}
 }
 
+function moveEnemies(){
+	var livingEnemies = getLivingEnemies();
+
+	for(var i = 0; i < livingEnemies.length; ++i){
+//		pythagoras
+		var distX = livingEnemies[i].x - player.x;
+		var distY = livingEnemies[i].y - player.y;
+		var distanceSquare = M.pow(distX,2) + M.pow(distY,2);
+		var distance = M.sqrt(distanceSquare);
+
+		if (distance > player.r/2  + livingEnemies[i].r/2) {
+            //If you add mass to the objects change to obj2.mass
+            //instead of 50
+            var totalForce = player.r/distanceSquare;
+            livingEnemies[i].vx += totalForce * distX / distance;
+            livingEnemies[i].vy += totalForce * distY / distance;
+        }
+        else {
+            player.life -= M.floor(livingEnemies[i].r);
+            livingEnemies[i].life = 0;
+        }
+
+        livingEnemies[i].x -= livingEnemies[i].vx;
+      	livingEnemies[i].y -= livingEnemies[i].vy;
+	}
+
+}
+
+function getLivingEnemies(){
+	var livingEnemies = [];
+	for(var i = 0; i < enemies.length; ++i){
+		if(enemies[i].life == 1){
+			if(enemies[i].x >= width || enemies[i].x <= 0 )
+				enemies[i].life = 0;
+			else if (enemies[i].y <= 0 || enemies[i].y >= height)
+				enemies[i].life = 0;
+			else
+				livingEnemies.push(enemies[i]);
+		}
+	}
+
+	return livingEnemies;
+}
+
+function drawEnemies(){
+	var livingEnemies = getLivingEnemies();
+
+	if(livingEnemies.length == 0){
+		var amountOfEnemies = M.floor(M.random() * 11);
+		var factorX;
+		var factorY;
+		if(M.random() > 0.5)
+			factorX = 1;
+		else
+			factorX = -1;
+
+		if(M.random() > 0.5)
+			factorY = 1;
+		else
+			factorY = -1;
+
+
+		for(var i = 0; i < amountOfEnemies; ++i){	
+			enemies[i].life = 1;
+			enemies[i].x = M.random() * width;
+			enemies[i].y = M.random() * height;
+			enemies[i].r = M.floor(M.random() * 20);
+			enemies[i].vx = M.random() / 2 * factorX;
+			enemies[i].vy = M.random() / 2 * factorY;
+		}
+		livingEnemies = getLivingEnemies();
+	}
+
+	for(var i = 0; i < livingEnemies.length; ++i){
+		context.beginPath();
+   		context.fillStyle = "red";
+		context.arc(livingEnemies[i].x, livingEnemies[i].y, livingEnemies[i].r, 0, 2 * M.PI, false);
+    	context.fill();
+
+    	context.beginPath();
+	    context.fillStyle = "black";
+   		context.textAlign = 'center';
+    	context.font = livingEnemies[i].r + "px Verdana";
+    	context.fillText(livingEnemies[i].r, livingEnemies[i].x, livingEnemies[i].y + livingEnemies[i].r / 2)
+	}
+
+	moveEnemies();
+}
+
 function resetPoint(point){
 	point.x = M.random() * width;
 	point.y = M.random() * height;
+	point.life = 1;
 	point.color = undefined;
 }
 
@@ -324,6 +415,7 @@ function draw(){
 	if(buttonPressed)
 		drawLoadingBeams(startAngle);
 
+	drawEnemies();
 	drawLivingBeams();
 	drawPlayer();
 	detectCollision();
@@ -374,8 +466,9 @@ function setup(){
 			y: M.random() * height,
 			life: 1,
 			color: undefined
-		})
+		});
 	}
+
 
 	player={
 		x: width >> 1,
@@ -384,6 +477,16 @@ function setup(){
 		life:10
 	};
 
+	for(var i = 0; i < 12; ++i){
+		enemies.push({
+			x: M.random() * width,
+			y: M.random() * height,
+			r: M.floor(M.random() * 20),
+			vx: 0,
+			vy: 0,
+			life: 0
+		});
+	}
 
 	D.onkeydown = keyDown;
 	D.onkeyup = keyUp;
