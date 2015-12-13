@@ -155,7 +155,10 @@ function drawLoadingBeams( startAngle){
 
 		context.beginPath();
 		context.lineWidth = 2;
-		context.strokeStyle = "rgba(255, 255, 255, 0.2)";
+		if(beams[i].lifetime == 1)
+			context.strokeStyle = "rgba(255, 0, 0, 0.5)";
+		else
+			context.strokeStyle = "rgba(255, 255, 255, 0.2)";
 		context.setLineDash([5]);
 		context.moveTo(loadingBeams[i].x,loadingBeams[i].y);
 		context.lineTo(loadingBeams[i].targetX,loadingBeams[i].targetY);
@@ -166,7 +169,19 @@ function drawLoadingBeams( startAngle){
 
 }
 
-function drawBeams(startAngle){
+function drawLivingBeams(){
+	var livingBeams = getLivingBeams();
+	for(var i = 0; i < livingBeams.length; ++i){
+		context.beginPath();
+		context.lineWidth = 2;
+    	context.strokeStyle = 'white';
+		context.moveTo(livingBeams[i].x,livingBeams[i].y);
+		context.lineTo(livingBeams[i].targetX,livingBeams[i].targetY);
+		context.stroke();	
+	}
+}
+
+function emitBeams(startAngle){
 
 	var growAngle = 0;
 	if(beamAmount != 0)
@@ -217,15 +232,7 @@ function drawBeams(startAngle){
 		}
 	}
 
-	var livingBeams = getLivingBeams();
-	for(var i = 0; i < livingBeams.length; ++i){
-		context.beginPath();
-		context.lineWidth = 2;
-    	context.strokeStyle = 'white';
-		context.moveTo(livingBeams[i].x,livingBeams[i].y);
-		context.lineTo(livingBeams[i].targetX,livingBeams[i].targetY);
-		context.stroke();	
-	}
+	
 	beamAmount = 0;
 }
 
@@ -313,10 +320,11 @@ function draw(){
 	drawPoints();
 	
 	if(buttonReleased)
-		drawBeams(startAngle);
+		emitBeams(startAngle);
 	if(buttonPressed)
 		drawLoadingBeams(startAngle);
 
+	drawLivingBeams();
 	drawPlayer();
 	detectCollision();
 	moveBeams();
