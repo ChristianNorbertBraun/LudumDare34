@@ -426,6 +426,27 @@ function input(){
 	}
 }
 
+function setPointer( event, down )
+{
+  
+	keysDown[37] = down;	
+    event.preventDefault()
+}
+
+function pointerUp( event )
+{
+    setPointer( event, false )
+    buttonReleased = true;
+	buttonPressed = false;
+}
+
+function pointerDown( event )
+{
+    setPointer( event, true )
+    buttonPressed = true;
+	buttonReleased = false;
+}
+
 function setKey( event, down )
 {
 	keysDown[event.keyCode] = down;
@@ -559,6 +580,9 @@ function setup(){
 
 	D.onkeydown = keyDown;
 	D.onkeyup = keyUp;
+
+	D.onmousedown = pointerDown
+	D.onmouseup = pointerUp
 
 	run();
 }
