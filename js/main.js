@@ -21,6 +21,7 @@ var M = Math,
 	drawBeamAmount = 0,
 	piRatio = M.PI / 180,
 	baseVelocity = 0.2,
+	startAngle = 0,
 	buttonPressed = false,
 	buttonReleased = false;
 
@@ -63,7 +64,7 @@ function detectCollision(){
 		for(var j = 0; j < points.length; ++j){
 			var collisionPoint = m * points[j].x + t;
 
-			if(M.abs(points[j].y - collisionPoint) <= 15){
+			if(M.abs(points[j].y - collisionPoint) <= 30){
 					
 					if((livingBeams[i].targetX > points[j].x &&
 						livingBeams[i].x < points[j].x) ||
@@ -71,7 +72,7 @@ function detectCollision(){
 						 livingBeams[i].x > points[j].x)){
 						if(points[j].life == 1){
 							points[j].color = "red";
-							player.life += 6;
+							player.life += 2;
 							points[j].life = 0;
 						}
 					}	
@@ -122,18 +123,18 @@ function moveBeams(){
 }
 
 
-function drawLoadingBeams(){
+function drawLoadingBeams( startAngle){
 
 	var growAngle = 0;
 	if(beamAmount != 0)
 		growAngle = 360 / beamAmount;
 	
-	var shootAngle = 0;
+	var shootAngle = startAngle;
 
 	for(var i = 0 ; i < beamAmount; ++i){
 
 
-		var growingBeamLength = player.r + beamAmount/2;
+		var growingBeamLength = player.r + beamAmount + (width >> 1);
 		var sinusValue = M.sin(shootAngle * piRatio);
 
 		if (shootAngle == 0 || shootAngle == 360){
@@ -154,22 +155,24 @@ function drawLoadingBeams(){
 
 		context.beginPath();
 		context.lineWidth = 2;
-    	context.strokeStyle = 'white';
+		context.strokeStyle = "rgba(255, 255, 255, 0.2)";
+		context.setLineDash([5]);
 		context.moveTo(loadingBeams[i].x,loadingBeams[i].y);
 		context.lineTo(loadingBeams[i].targetX,loadingBeams[i].targetY);
 		context.stroke();
 
+		context.setLineDash([]);
 	}
 
 }
 
-function drawBeams(){
+function drawBeams(startAngle){
 
 	var growAngle = 0;
 	if(beamAmount != 0)
 		growAngle = 360 / beamAmount;
 	
-	var shootAngle = 0;
+	var shootAngle = startAngle;
 
 	for(var i = 0 ; i < beamAmount; ++i){
 		var xFactor,
@@ -204,7 +207,7 @@ function drawBeams(){
 			else{
 				beams[i].targetX = M.cos(shootAngle * piRatio) * beamLength + beams[i].x; 
 				beams[i].targetY = sinusValue * beamLength + beams[i].y;
-				beams[i].vx = (M.cos(shootAngle * piRatio) * beamLength) / 30 ;
+				beams[i].vx = (M.cos(shootAngle * piRatio) * beamLength) / 5 ;
 				beams[i].vy = (sinusValue * beamLength) / 5 ; 
 
 			}
@@ -227,17 +230,17 @@ function drawBeams(){
 }
 
 function calculateBeamAmount(){
-	var beamGrowRate = 1/5;
+	var beamGrowRate = 1/200 * player.life;
 
-	if(beamAmount + beamGrowRate > 36)
-		beamAmount = 36;
-	else
+	if(beamAmount + beamGrowRate > 100)
+		beamAmount = 100;
+	else if(beamAmount < player.life)
 		beamAmount += beamGrowRate;
 }	
 
 function grow(){
-	var growRate = (player.life * 3) / player.r * factor;
-	playerColor = "green";
+	var growRate = (player.life ) / player.r * factor;
+	playerColor = "white";
 	player.r += growRate;
 	calculateBeamAmount();
 }
@@ -250,7 +253,7 @@ function shrink(){
 		player.r = player.life;
 	}
 	else{
-		playerColor = "red";
+		playerColor = "white";
 		player.r -= shrinkRate;
 	}
 }
@@ -258,10 +261,13 @@ function shrink(){
 function input(){
 	if( keysDown[37] ){
 		grow();
+		startAngle = 180
 		
 	}
-	else if( keysDown[39] )
+	else if( keysDown[39] ){
 		grow();
+		startAngle = 0;
+	}
 	else{
 		shrink();
 	}
@@ -292,6 +298,12 @@ function drawPlayer(){
 	context.arc(player.x, player.y, player.r, 0, 2 * M.PI, false);
     context.fill();	
 
+   	context.beginPath();
+    context.fillStyle = "black";
+    context.textAlign = 'center';
+    context.font=	player.life + "px Verdana";
+    context.fillText(player.life, player.x, player.y + player.r / 2)
+
    
 }
 
@@ -301,9 +313,9 @@ function draw(){
 	drawPoints();
 	
 	if(buttonReleased)
-		drawBeams();
+		drawBeams(startAngle);
 	if(buttonPressed)
-		drawLoadingBeams();
+		drawLoadingBeams(startAngle);
 
 	drawPlayer();
 	detectCollision();
@@ -322,7 +334,7 @@ function run(){
 
 function setup(){
 	
-	for(var i = 0; i < 36 ; ++i){
+	for(var i = 0; i < 100 ; ++i){
 		beams.push({
 			x: width >> 1,
 			y: height >> 1,
@@ -335,7 +347,7 @@ function setup(){
 		});
 	}
 
-	for(var i = 0; i < 36 ; ++i){
+	for(var i = 0; i < 100 ; ++i){
 		loadingBeams.push({
 			x: width >> 1,
 			y: height >> 1,
@@ -348,7 +360,7 @@ function setup(){
 		});
 	}
 
-	for(var i = 0; i < 20; ++i){
+	for(var i = 0; i < 30; ++i){
 		points.push({
 			x: M.random() * width,
 			y: M.random() * height,
