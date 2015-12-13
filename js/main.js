@@ -16,7 +16,7 @@ var M = Math,
 	points = [],
 	player,
 	keysDown = [],
-	playerColor,
+	playerColor = "#D3E33F",
 	beamLength = 30,
 	beamAmount = 0,
 	drawBeamAmount = 0,
@@ -24,9 +24,36 @@ var M = Math,
 	baseVelocity = 0.2,
 	startAngle = 0,
 	buttonPressed = false,
-	buttonReleased = false;
+	buttonReleased = false,
+	button,
+	particles = [];
 
 
+
+function drawRestartBox(isWon){
+	var x = (width >> 1) - 200;
+	var y = (height >> 1) + 100;
+	var boxText;
+
+	context.beginPath();
+	context.fillStyle = "#129EB3";
+	context.fillRect(x, y, 400, 200);
+	context.fill();
+
+	if (isWon)
+	   	boxText = "You won! Play again?"
+	else
+		boxText = "You lost! Play again?"
+
+
+	context.beginPath();
+   	context.fillStyle = "black";
+   	context.textAlign = 'center';
+   	context.font= "30px Verdana";
+   	context.fillText(boxText, width >> 1, y + 60);
+
+
+}
 
 function getLivingBeams(){
 	var livingBeams = [];
@@ -58,6 +85,7 @@ function clearScreenLeavingBeams(){
 
 function detectCollision(){
 	var livingBeams = getLivingBeams();
+	var livingEnemies = getLivingEnemies();
 	for(var i = 0; i < livingBeams.length; ++i){
 		var m = (livingBeams[i].targetY - livingBeams[i].y) / (livingBeams[i].targetX - livingBeams[i].x);
 		var t = livingBeams[i].y - m * livingBeams[i].x;
@@ -67,16 +95,36 @@ function detectCollision(){
 
 			if(M.abs(points[j].y - collisionPoint) <= 10){
 					
-					if((livingBeams[i].targetX > points[j].x &&
-						livingBeams[i].x < points[j].x) ||
-						(livingBeams[i].targetX < points[j].x &&
-						 livingBeams[i].x > points[j].x)){
-						if(points[j].life == 1){
-							points[j].color = "red";
-							player.life += 2;
-							points[j].life = 0;
-						}
-					}	
+				if((livingBeams[i].targetX > points[j].x &&
+					livingBeams[i].x < points[j].x) ||
+					(livingBeams[i].targetX < points[j].x &&
+					livingBeams[i].x > points[j].x)){
+					if(points[j].life == 1){
+						points[j].color = "red";
+						player.life += 2;
+						points[j].life = 0;
+					}
+				}	
+			}
+		}
+
+		for( var j = 0 ; j < livingEnemies.length; ++j){
+			var collisionPoint = m * livingEnemies[j].x + t;
+
+			if(M.abs(livingEnemies[j].y - collisionPoint) <= livingEnemies[j].r + 10){
+					
+				if((livingBeams[i].targetX > livingEnemies[j].x &&
+					livingBeams[i].x < livingEnemies[j].x) ||
+					(livingBeams[i].targetX < livingEnemies[j].x &&
+					livingBeams[i].x > livingEnemies[j].x)){
+					if(livingEnemies[j].life == 1){
+						livingEnemies[j].color = "white";
+						player.life += M.floor(livingEnemies[j].r / 3);
+						livingEnemies[j].life = 0;
+						createExplosion(livingEnemies[j].x, livingEnemies[j].y, "#C4104F");
+						createExplosion(livingEnemies[j].x, livingEnemies[j].y, "#F89CB8");
+					}
+				}	
 			}
 		}
 	}
@@ -95,12 +143,12 @@ function moveEnemies(){
 		if (distance > player.r/2  + livingEnemies[i].r/2) {
             //If you add mass to the objects change to obj2.mass
             //instead of 50
-            var totalForce = player.r/distanceSquare;
+            var totalForce = (player.r * 7)/distanceSquare;
             livingEnemies[i].vx += totalForce * distX / distance;
             livingEnemies[i].vy += totalForce * distY / distance;
         }
         else {
-            player.life -= M.floor(livingEnemies[i].r);
+            player.life -= M.floor(livingEnemies[i].r / 2);
             livingEnemies[i].life = 0;
         }
 
@@ -129,8 +177,11 @@ function getLivingEnemies(){
 function drawEnemies(){
 	var livingEnemies = getLivingEnemies();
 
-	if(livingEnemies.length == 0){
-		var amountOfEnemies = M.floor(M.random() * 11);
+	if(livingEnemies.length <= 4){
+		if(M.floor(player.r / player.life) < 20 )
+			var amountOfEnemies = M.floor(player.r / player.life) * 2
+		else
+			var amountOfEnemies = M.floor(M.random() * 19);
 		var factorX;
 		var factorY;
 		if(M.random() > 0.5)
@@ -145,19 +196,26 @@ function drawEnemies(){
 
 
 		for(var i = 0; i < amountOfEnemies; ++i){	
-			enemies[i].life = 1;
-			enemies[i].x = M.random() * width;
-			enemies[i].y = M.random() * height;
-			enemies[i].r = M.floor(M.random() * 20);
-			enemies[i].vx = M.random() / 2 * factorX;
-			enemies[i].vy = M.random() / 2 * factorY;
+			var enemieRadius = M.floor(M.random() * (player.r / 4));
+
+			if(enemieRadius <= 15)
+				enemieRadius = M.floor(M.random() * 15) + 2;
+
+			if(enemies[i].life != 1){
+				enemies[i].life = 1;
+				enemies[i].x = M.random() * width;
+				enemies[i].y = M.random() * height;
+				enemies[i].r = enemieRadius;
+				enemies[i].vx = M.random() / 2 * factorX;
+				enemies[i].vy = M.random() / 2 * factorY;
+			}
 		}
 		livingEnemies = getLivingEnemies();
 	}
 
 	for(var i = 0; i < livingEnemies.length; ++i){
 		context.beginPath();
-   		context.fillStyle = "red";
+   		context.fillStyle = "#F71463";
 		context.arc(livingEnemies[i].x, livingEnemies[i].y, livingEnemies[i].r, 0, 2 * M.PI, false);
     	context.fill();
 
@@ -165,7 +223,7 @@ function drawEnemies(){
 	    context.fillStyle = "black";
    		context.textAlign = 'center';
     	context.font = livingEnemies[i].r + "px Verdana";
-    	context.fillText(livingEnemies[i].r, livingEnemies[i].x, livingEnemies[i].y + livingEnemies[i].r / 2)
+    	context.fillText(M.floor(livingEnemies[i].r / 3), livingEnemies[i].x, livingEnemies[i].y + livingEnemies[i].r / 2)
 	}
 
 	moveEnemies();
@@ -338,7 +396,6 @@ function calculateBeamAmount(){
 
 function grow(){
 	var growRate = (player.life ) / player.r * factor;
-	playerColor = "white";
 	player.r += growRate;
 	calculateBeamAmount();
 }
@@ -347,11 +404,9 @@ function shrink(){
 	var shrinkRate = player.r / (player.life * 10) * factor;
 
 	if(player.r - shrinkRate < player.life){
-		playerColor = "white";
 		player.r = player.life;
 	}
 	else{
-		playerColor = "white";
 		player.r -= shrinkRate;
 	}
 }
@@ -406,21 +461,32 @@ function drawPlayer(){
 }
 
 function draw(){
-	context.fillStyle = "#000";
-	context.fillRect( 0, 0, width, height );
-	drawPoints();
+	if(player.life >= 333 ){
+		drawRestartBox(true);
+	}
+	else if(player.life > 0){
+		context.fillStyle = "#000";
+		context.fillRect( 0, 0, width, height );
+		drawPoints();
 	
-	if(buttonReleased)
-		emitBeams(startAngle);
-	if(buttonPressed)
-		drawLoadingBeams(startAngle);
+		updateParticles(50);
+		particles.splice(particles.length);
 
-	drawEnemies();
-	drawLivingBeams();
-	drawPlayer();
-	detectCollision();
-	moveBeams();
-	clearScreenLeavingBeams();
+		if(buttonReleased)
+			emitBeams(startAngle);
+		if(buttonPressed)
+			drawLoadingBeams(startAngle);
+
+		drawEnemies();
+		drawLivingBeams();
+		drawPlayer();
+		detectCollision();
+		moveBeams();
+		clearScreenLeavingBeams();
+	}
+	else{
+		drawRestartBox(false);
+	}
 }
 
 function run(){
@@ -434,6 +500,7 @@ function run(){
 
 function setup(){
 	
+
 	for(var i = 0; i < 100 ; ++i){
 		beams.push({
 			x: width >> 1,
@@ -477,7 +544,7 @@ function setup(){
 		life:10
 	};
 
-	for(var i = 0; i < 12; ++i){
+	for(var i = 0; i < 20; ++i){
 		enemies.push({
 			x: M.random() * width,
 			y: M.random() * height,
@@ -487,6 +554,8 @@ function setup(){
 			life: 0
 		});
 	}
+
+
 
 	D.onkeydown = keyDown;
 	D.onkeyup = keyUp;
