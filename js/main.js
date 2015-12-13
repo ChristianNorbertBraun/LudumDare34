@@ -41,15 +41,15 @@ function drawRestartBox(isWon){
 	context.fill();
 
 	if (isWon)
-	   	boxText = "You won! Play again?"
+	   	boxText = "You won! Play again? Refresh!"
 	else
-		boxText = "You lost! Play again?"
+		boxText = "You lost! Play again? Refresh!"
 
 
 	context.beginPath();
    	context.fillStyle = "black";
    	context.textAlign = 'center';
-   	context.font= "30px Verdana";
+   	context.font= "20px Verdana";
    	context.fillText(boxText, width >> 1, y + 60);
 
 
