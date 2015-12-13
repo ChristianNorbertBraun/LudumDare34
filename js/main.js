@@ -25,6 +25,7 @@ var M = Math,
 	buttonReleased = false;
 
 
+
 function getLivingBeams(){
 	var livingBeams = [];
 	for(var i = 0; i < beams.length; ++i){
@@ -33,6 +34,24 @@ function getLivingBeams(){
 	}
 
 	return livingBeams;
+}
+function resetBeam(beam){
+	beam.x = width >> 1;
+	beam.y = height >> 1;
+	beam.lifetime = 0;
+	beam.vx = 0;
+	beam.vy = 0;
+}
+
+function clearScreenLeavingBeams(){
+	var livingBeams = getLivingBeams();
+
+	for(var i = 0; i < livingBeams.length; ++i){
+		if(livingBeams[i].x >= width || livingBeams[i].x <= 0)
+			resetBeam(livingBeams[i]);
+		else if(livingBeams[i].y <= 0 || livingBeams[i].y >= height)
+			resetBeam(livingBeams[i]);
+	}
 }
 
 function detectCollision(){
@@ -44,9 +63,35 @@ function detectCollision(){
 		for(var j = 0; j < points.length; ++j){
 			var collisionPoint = m * points[j].x + t;
 
-			if(M.abs(points[j].y - collisionPoint) <= 10)
-				points[j].color = "red";
+			if(M.abs(points[j].y - collisionPoint) <= 15){
+					
+					if((livingBeams[i].targetX > points[j].x &&
+						livingBeams[i].x < points[j].x) ||
+						(livingBeams[i].targetX < points[j].x &&
+						 livingBeams[i].x > points[j].x)){
+						if(points[j].life == 1){
+							points[j].color = "red";
+							player.life += 6;
+							points[j].life = 0;
+						}
+					}	
+			}
 		}
+	}
+}
+
+function resetPoint(point){
+	point.x = M.random() * width;
+	point.y = M.random() * height;
+	point.color = undefined;
+}
+
+function movePoints(){
+	for(var i = 0; i < points.length; ++i){
+		if(points[i].y >= height)
+			resetPoint(points[i]);
+		else
+			points[i].y += 1;
 	}
 }
 
@@ -54,11 +99,15 @@ function drawPoints(){
 	for(var i = 0; i < points.length; ++i){
 		context.beginPath();
 		var transparency = Math.random() + 0.5;
-		//context.fillStyle = "rgba(255, 255, 255, "+ transparency +")";
-		context.fillStyle = points[i].color;
+		if(points[i].color != undefined)
+			context.fillStyle = points[i].color;
+		else
+			context.fillStyle = "rgba(255, 255, 255, "+ transparency +")";
 		context.fillRect(points[i].x, points[i].y, 6, 6);
 		context.fill();
 	}
+
+	movePoints();
 }
 
 function moveBeams(){
@@ -144,19 +193,19 @@ function drawBeams(){
 			if (shootAngle == 0 || shootAngle == 360){
 				beams[i].targetX = beams[i].x + beamLength;
 				beams[i].targetY = beams[i].y;
-				beams[i].vx = beamLength / 30;
+				beams[i].vx = beamLength / 5;
 
 			}
 			else if (shootAngle == 180){
 				beams[i].targetX = beams[i].x - beamLength;
 				beams[i].targetY = beams[i].y;
-				beams[i].vx = -beamLength/30;
+				beams[i].vx = -beamLength / 5;
 			}
 			else{
 				beams[i].targetX = M.cos(shootAngle * piRatio) * beamLength + beams[i].x; 
 				beams[i].targetY = sinusValue * beamLength + beams[i].y;
 				beams[i].vx = (M.cos(shootAngle * piRatio) * beamLength) / 30 ;
-				beams[i].vy = (sinusValue * beamLength) / 30 ; 
+				beams[i].vy = (sinusValue * beamLength) / 5 ; 
 
 			}
 
@@ -250,15 +299,16 @@ function draw(){
 	context.fillStyle = "#000";
 	context.fillRect( 0, 0, width, height );
 	drawPoints();
-	if(buttonReleased){
+	
+	if(buttonReleased)
 		drawBeams();
-		detectCollision();
-	}
-
 	if(buttonPressed)
 		drawLoadingBeams();
+
 	drawPlayer();
+	detectCollision();
 	moveBeams();
+	clearScreenLeavingBeams();
 }
 
 function run(){
@@ -303,7 +353,7 @@ function setup(){
 			x: M.random() * width,
 			y: M.random() * height,
 			life: 1,
-			color: "white"
+			color: undefined
 		})
 	}
 
